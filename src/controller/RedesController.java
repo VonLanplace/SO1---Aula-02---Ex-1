@@ -1,9 +1,17 @@
 package controller;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+
 public class RedesController {
+
+	public RedesController() {
+		super();
+	}
+
 	// Identifica e retorna o nome do Sistema Operacional
 	private String os() {
-		return "Debian";
+		return System.getProperty("os.name");
 	}
 
 	/*
@@ -11,7 +19,143 @@ public class RedesController {
 	 * configuração de IP.
 	 */
 	public String ip() {
-		return "1.1.1.1";
+		String os = os();
+		if (os.contains("Windows")) {
+			// return ipWindos();
+			return "Unknown OS";
+
+		} else if (os.contains("Linux") || os.contains("Mac")) {
+			return ipLinux();
+
+		} else {
+			return "Unknown OS";
+		}
+	}
+
+	private String ipLinux() {
+		// Create Process
+		boolean ifConfig = false, ipAdd = false;
+		Process process = callProcess("ifconfig");
+		// process = null;// Teste de ip addr
+		if (process != null) {
+			ifConfig = true;
+
+		} else {
+			process = callProcess("ip addr");
+
+			if (process != null) {
+				ipAdd = true;
+
+			}
+		}
+
+		// Return String
+		if (ifConfig) {
+			String out = readIfConfig(process);
+			// killProcess();
+			return out;
+
+		} else if (ipAdd) {
+			String out = readIpAddr(process);
+			return out;
+		}
+		return null;
+	}
+
+	private String readIfConfig(Process process) {
+		InputStreamReader reader = new InputStreamReader(process.getInputStream());
+		try (BufferedReader buffer = new BufferedReader(reader)) {
+			String line = buffer.readLine();
+			StringBuffer text = new StringBuffer();
+			text.append("# ifconfig");
+			text.append("\r\n");
+
+			while (line != null) {
+
+				if (line.contains("mtu")) {
+					String[] linha = line.trim().split(" ");
+					text.append(linha[0].trim());
+					text.append("\r\n");
+
+				} else if (line.contains("inet") && !line.contains("inet6")) {
+					String[] linha = line.trim().split(" ");
+					text.append("- ");
+					text.append(linha[1].trim());
+					text.append("\r\n");
+				}
+
+				line = buffer.readLine();
+			}
+
+			return text.toString();
+
+		} catch (Exception e) {
+			// TODO: handle exception
+			String msg = e.getMessage();
+			System.err.println(msg);
+		}
+
+		return null;
+	}
+
+	private String readIpAddr(Process process) {
+		InputStreamReader reader = new InputStreamReader(process.getInputStream());
+		try (BufferedReader buffer = new BufferedReader(reader)) {
+			String line = buffer.readLine();
+			StringBuffer text = new StringBuffer();
+			text.append("# ip addr");
+			text.append("\r\n");
+
+			while (line != null) {
+
+				if (line.contains("mtu")) {
+					String[] linha = line.trim().split(" ");
+					text.append(linha[1].trim());
+					text.append("\r\n");
+
+				} else if (line.contains("inet") && !line.contains("inet6")) {
+					String[] linha = line.trim().split(" ");
+					String[] len = linha[1].trim().split("/");
+					text.append("- ");
+					text.append(len[0].trim());
+					text.append("\r\n");
+				}
+
+				line = buffer.readLine();
+			}
+
+			return text.toString();
+
+		} catch (Exception e) {
+			// TODO: handle exception
+			String msg = e.getMessage();
+			System.err.println(msg);
+		}
+
+		return null;
+	}
+
+	private Process callProcess(String proc) {
+		try {
+			String[] command = proc.split(" ");
+			Process process = Runtime.getRuntime().exec(command);
+			return process;
+
+		} catch (Exception e) {
+			String msg = e.getMessage();
+
+			if (msg.contains("740")) {
+				StringBuffer buffer = new StringBuffer();
+				buffer.append("cmd /c");
+				buffer.append(" ");
+				buffer.append(proc);
+				return callProcess(buffer.toString());
+
+			} else {
+				System.err.println(msg);
+			}
+		}
+		return null;
 	}
 
 	/*
@@ -20,6 +164,13 @@ public class RedesController {
 	 */
 	public String ping() {
 		String os = os();
-		return "0ms";
+		if (os.contains("Windows")) {
+			// return pingWindos();
+		} else if (os.contains("Linux") || os.contains("Mac")) {
+			// return pingLinux();
+		} else {
+			return "Unknown OS";
+		}
+		return null;
 	}
 }
