@@ -76,13 +76,11 @@ public class RedesController {
 		return null;
 	}
 
-	private void killProcess(Long PID) {
-		StringBuffer cmdPid = new StringBuffer();
-		cmdPid.append("TASKKILL /PID");
-		cmdPid.append(PID);
-		callProcess(cmdPid.toString());
-	}
-
+	/*
+	 * private void killProcess(Long PID) { StringBuffer cmdPid = new
+	 * StringBuffer(); cmdPid.append("TASKKILL /PID"); cmdPid.append(PID);
+	 * callProcess(cmdPid.toString()); }
+	 */
 	private String ipLinux() {
 		// Create Process
 		boolean ifConfig = false, ipAdd = false;
@@ -143,10 +141,10 @@ public class RedesController {
 		} catch (Exception e) {
 			// TODO: handle exception
 			String msg = e.getMessage();
-			System.err.println(msg);
+			return msg;
+
 		}
 
-		return null;
 	}
 
 	private String linuxReadIpAddr(Process process) {
@@ -180,10 +178,8 @@ public class RedesController {
 		} catch (Exception e) {
 			// TODO: handle exception
 			String msg = e.getMessage();
-			System.err.println(msg);
+			return msg;
 		}
-
-		return null;
 	}
 
 	private Process callProcess(String proc) {
@@ -216,9 +212,11 @@ public class RedesController {
 	public String ping() {
 		String os = os();
 		if (os.contains("Windows")) {
-			// String out = pingWindos();if (out != null)return out;
+			String out = pingWindows("www.google.com.br");
+			if (out != null)
+				return out;
 		} else if (os.contains("Linux") || os.contains("Mac")) {
-			String out = pingLinux();
+			String out = pingLinux("www.google.com.br");
 			if (out != null)
 				return out;
 		} else {
@@ -227,8 +225,11 @@ public class RedesController {
 		return "Erro";
 	}
 
-	private String pingLinux() {
-		Process ping = callProcess("ping -4 -c 10 www.google.com.br");
+	private String pingWindows(String site) {
+		StringBuffer text = new StringBuffer();
+		text.append("ping -4 -n 10 ");
+		text.append(site);
+		Process ping = callProcess(text.toString());
 
 		if (ping == null)
 			return null;
@@ -236,21 +237,60 @@ public class RedesController {
 		InputStreamReader reader = new InputStreamReader(ping.getInputStream());
 		try (BufferedReader buffer = new BufferedReader(reader)) {
 			String line = buffer.readLine();
-			StringBuffer text = new StringBuffer();
+			text = new StringBuffer();
 			text.append("# Ping");
 			text.append("\r\n");
 
 			while (line != null) {
+				if (line.contains("ms,")) {
+					String[] linha = line.trim().split("=");
+					text.append("Tempo Medio: ");
+					text.append(linha[3].trim());
+					text.append("\r\n");
 
+				}
 				line = buffer.readLine();
 			}
 			reader.close();
 			return text.toString();
 		} catch (Exception e) {
 			String msg = e.getMessage();
-			System.err.println(msg);
+			return msg;
 		}
 
-		return null;
+	}
+
+	private String pingLinux(String site) {
+		StringBuffer text = new StringBuffer();
+		text.append("ping -4 -c 10 ");
+		text.append(site);
+		Process ping = callProcess(text.toString());
+
+		if (ping == null)
+			return null;
+
+		InputStreamReader reader = new InputStreamReader(ping.getInputStream());
+		try (BufferedReader buffer = new BufferedReader(reader)) {
+			String line = buffer.readLine();
+			text = new StringBuffer();
+			text.append("# Ping");
+			text.append("\r\n");
+
+			while (line != null) {
+				if (line.contains("rtt")) {
+					String[] linha = line.trim().split("/");
+					text.append("Tempo Medio: ");
+					text.append(linha[4]);
+					text.append("\r\n");
+
+				}
+				line = buffer.readLine();
+			}
+			reader.close();
+			return text.toString();
+		} catch (Exception e) {
+			String msg = e.getMessage();
+			return msg;
+		}
 	}
 }
