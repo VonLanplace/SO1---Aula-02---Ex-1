@@ -14,5 +14,6 @@ public class Main {
 		RedesController RC = new RedesController();
 
 		JOptionPane.showMessageDialog(null, RC.ip());
+		JOptionPane.showMessageDialog(null, RC.ping());
 	}
 }

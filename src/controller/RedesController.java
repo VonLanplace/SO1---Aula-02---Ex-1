@@ -21,15 +21,66 @@ public class RedesController {
 	public String ip() {
 		String os = os();
 		if (os.contains("Windows")) {
-			// return ipWindos();
-			return "Unknown OS";
+			String out = ipWindows();
+			if (out != null)
+				return out;
 
 		} else if (os.contains("Linux") || os.contains("Mac")) {
-			return ipLinux();
+			String out = ipLinux();
+			if (out != null)
+				return out;
 
 		} else {
 			return "Unknown OS";
 		}
+		return "ERRO";
+
+	}
+
+	private String ipWindows() {
+		// Create Process
+		Process process = callProcess("IPCONFIG");
+
+		if (process == null)
+			return null;
+
+		InputStreamReader reader = new InputStreamReader(process.getInputStream());
+		try (BufferedReader buffer = new BufferedReader(reader)) {
+			String line = buffer.readLine();
+			StringBuffer text = new StringBuffer();
+			text.append("# IPCONFIG");
+			text.append("\r\n");
+
+			while (line != null) {
+				if (line.contains(":") && !line.contains(". . .")) {
+					text.append(line.trim());
+					text.append("\r\n");
+				} else if (line.contains("IPv4")) {
+					String[] linha = line.trim().split(":");
+					text.append("- ");
+					text.append(linha[1].trim());
+					text.append("\r\n");
+				}
+				line = buffer.readLine();
+			}
+			if (process.isAlive()) {
+				process.destroy();
+			}
+			return text.toString();
+		} catch (Exception e) {
+			// TODO: handle exception
+			String msg = e.getMessage();
+			System.err.println(msg);
+		}
+
+		return null;
+	}
+
+	private void killProcess(Long PID) {
+		StringBuffer cmdPid = new StringBuffer();
+		cmdPid.append("TASKKILL /PID");
+		cmdPid.append(PID);
+		callProcess(cmdPid.toString());
 	}
 
 	private String ipLinux() {
@@ -51,18 +102,18 @@ public class RedesController {
 
 		// Return String
 		if (ifConfig) {
-			String out = readIfConfig(process);
+			String out = linuxReadIfConfig(process);
 			// killProcess();
 			return out;
 
 		} else if (ipAdd) {
-			String out = readIpAddr(process);
+			String out = linuxReadIpAddr(process);
 			return out;
 		}
 		return null;
 	}
 
-	private String readIfConfig(Process process) {
+	private String linuxReadIfConfig(Process process) {
 		InputStreamReader reader = new InputStreamReader(process.getInputStream());
 		try (BufferedReader buffer = new BufferedReader(reader)) {
 			String line = buffer.readLine();
@@ -98,7 +149,7 @@ public class RedesController {
 		return null;
 	}
 
-	private String readIpAddr(Process process) {
+	private String linuxReadIpAddr(Process process) {
 		InputStreamReader reader = new InputStreamReader(process.getInputStream());
 		try (BufferedReader buffer = new BufferedReader(reader)) {
 			String line = buffer.readLine();
@@ -165,12 +216,41 @@ public class RedesController {
 	public String ping() {
 		String os = os();
 		if (os.contains("Windows")) {
-			// return pingWindos();
+			// String out = pingWindos();if (out != null)return out;
 		} else if (os.contains("Linux") || os.contains("Mac")) {
-			// return pingLinux();
+			String out = pingLinux();
+			if (out != null)
+				return out;
 		} else {
 			return "Unknown OS";
 		}
+		return "Erro";
+	}
+
+	private String pingLinux() {
+		Process ping = callProcess("ping -4 -c 10 www.google.com.br");
+
+		if (ping == null)
+			return null;
+
+		InputStreamReader reader = new InputStreamReader(ping.getInputStream());
+		try (BufferedReader buffer = new BufferedReader(reader)) {
+			String line = buffer.readLine();
+			StringBuffer text = new StringBuffer();
+			text.append("# Ping");
+			text.append("\r\n");
+
+			while (line != null) {
+
+				line = buffer.readLine();
+			}
+			reader.close();
+			return text.toString();
+		} catch (Exception e) {
+			String msg = e.getMessage();
+			System.err.println(msg);
+		}
+
 		return null;
 	}
 }
